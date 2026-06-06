@@ -1,0 +1,151 @@
+{
+    // Docker Orthanc config for this workspace: the only file mounted as /etc/orthanc/orthanc.json in compose. Edit here; do not merge from config/Configuration.json or *Plugin/DefaultConfiguration.json — those stay reference-only (upstream / stock samples).
+    "Name": "OrthancILO",
+    "StorageDirectory": "/var/lib/orthanc",
+    "IndexDirectory": "/var/lib/orthanc/db",
+    "StorageCompression": false,
+    "MaximumStorageSize": 0,
+    "MaximumPatientCount": 0,
+    "MaximumStorageMode": "Recycle",
+    "LuaScripts": [],
+    "OHIF": {
+        "UserConfiguration": "/etc/orthanc/ohif.js",
+        "DataSource": "dicom-web"
+    }, 
+    "Plugins": [
+        // Core plugins - ENABLED
+        "/usr/share/orthanc/plugins-available/libOrthancDicomWeb.so",
+        "/usr/share/orthanc/plugins-available/libOrthancPostgreSQLIndex.so",
+        "/usr/share/orthanc/plugins-available/libOrthancPostgreSQLStorage.so",
+        "/usr/share/orthanc/plugins-available/libOrthancGdcm.so",
+        "/usr/share/orthanc/plugins-available/libOrthancTransfers.so",
+        //"/usr/share/orthanc/plugins/OrthancExplorer2/libOrthancExplorer2CXAS.so", // Temporarily disabled - rebuild needed
+        "/usr/share/orthanc/plugins-available/libOrthancExplorer2.so",
+        "/usr/share/orthanc/plugins-available/libOrthancOHIF.so",
+        "/usr/share/orthanc/plugins-available/libStoneWebViewer.so",
+        "/usr/share/orthanc/plugins-available/libOrthancVolView.so",
+        // Additional available plugins - DISABLED (uncomment to enable)
+        // "/usr/share/orthanc/plugins-available/libOrthancJava.so",  // Requires JVM
+        "/usr/share/orthanc/plugins-available/libOrthancPython.so",
+        // "/usr/share/orthanc/plugins-available/libOrthancWebViewer.so",  // Legacy web viewer
+        // "/usr/share/orthanc/plugins-available/libOsimisWebViewer.so",  // Osimis web viewer
+        // "/usr/share/orthanc/plugins-available/libOsimisWebViewerAlpha.so",  // Osimis alpha
+        "/usr/share/orthanc/plugins-available/libOrthancWSI.so",
+        // "/usr/share/orthanc/plugins-available/libOrthancSTL.so",  // STL mesh export
+        // "/usr/share/orthanc/plugins-available/libOrthancNeuro.so",  // Neuroimaging tools
+        // "/usr/share/orthanc/plugins-available/libOrthancIndexer.so",  // Advanced indexing
+        // "/usr/share/orthanc/plugins-available/libOrthancTcia.so",  // TCIA integration
+        // "/usr/share/orthanc/plugins-available/libOrthancAuthorization.so",  // Authorization
+        // Cloud storage plugins - DISABLED
+        // "/usr/share/orthanc/plugins-available/libOrthancAzureBlobStorage.so",
+        // "/usr/share/orthanc/plugins-available/libOrthancGoogleCloudStorage.so",
+        // "/usr/share/orthanc/plugins-available/libOrthancAwsS3Storage.so",
+        // "/usr/share/orthanc/plugins-available/libAdvancedStorage.so",
+        // Database plugins - DISABLED (using PostgreSQL above)
+        // "/usr/share/orthanc/plugins-available/libOrthancMySQLIndex.so",
+        // "/usr/share/orthanc/plugins-available/libOrthancMySQLStorage.so",
+        // "/usr/share/orthanc/plugins-available/libOrthancOdbcIndex.so",
+        // "/usr/share/orthanc/plugins-available/libOrthancOdbcStorage.so",
+        // Utility plugins - DISABLED
+        // "/usr/share/orthanc/plugins-available/libMultitenantDicom.so",  // Multi-tenancy
+        // "/usr/share/orthanc/plugins-available/libDelayedDeletion.so",  // Delayed deletion
+        "/usr/share/orthanc/plugins-available/libConnectivityChecks.so",
+        // "/usr/share/orthanc/plugins-available/libHousekeeper.so",  // Housekeeping tasks
+        // "/usr/share/orthanc/plugins-available/libServeFolders.so",  // Serve static folders
+        "/usr/share/orthanc/plugins-available/libOrthancWorklists.so"
+    ],
+    "Worklists": {
+        "Enable": true,
+        "FilterIssuerAet": false, // Some modalities do not specify 'ScheduledStationAETitle (0040,0001)'
+        // in the C-Find and may receive worklists not related to them.  This option
+        // adds an extra filtering based on the AET of the modality issuing the C-Find.
+        "LimitAnswers": 0, // Maximum number of answers to be returned (new in release 1.7.3)
+        "Directory": "/var/lib/orthanc/worklists", // The folder from which worklists are read or in which they are created.
+        "SaveInOrthancDatabase": false, // If set to true and if the Orthanc Database supports Key-Value stores
+        // (PostgreSQL or SQLite), the worklists must be created through the REST API
+        // and are stored in the Orthanc DB.
+        "SetStudyInstanceUidIfMissing": true, // Add a StudyInstanceUID to the worklist if none is provided in the REST API call to create it
+        "DeleteWorklistsOnStableStudy": true, // Delete the worklist as soon as a a stable study is found with the StudyInstanceUID
+        // provided in the worklist.
+        // Note that this check is performed in the Worklist Housekeeper thread.  The plugin
+        // does not react synchronously on the Stable Study event.
+        // This process is only available if you are providing a StudyInstanceUID
+        // or if you have set the 'SetStudyInstanceUIDIfMissing' configuration to true
+        "HousekeepingInterval": 60 // Interval [in seconds] between 2 execution of the Worklist Housekeeper thread.
+        // New options only if SaveInOrthancDatabase is set to true.
+        //"DeleteWorklistsDelay": 24 // Delay [in hours] after which the worklist is deleted.
+        // Note that this check is performed in the Worklist Housekeeper thread.
+        // The plugin only deletes worklists that have been created through the REST API.
+        // Set it to 0 if you don't want the plugin to delete worklists after a delay.
+    },
+    // Mounted from ./python → /usr/share/orthanc/plugins/python (see docker-compose.yml)
+    "PythonScript": "/usr/share/orthanc/plugins/python/plugin.py",
+    // Orthanc Explorer2 — optional ilo_plugin.json beside plugin.py for letterhead / ILO URL defaults.
+    "OrthancExplorer2": {
+        "Enable": true,
+        "IsDefaultOrthancUI": true,
+        "EnableOpenInOhifViewer": false,
+        "EnableOpenInOhifViewer3": true,
+        "UiOptions": {
+            "StudyListContentIfNoSearch": "most-recents",
+            "MaxStudiesDisplayed": 100,
+            // Keep core list/actions enabled (if UiOptions is shallow-merged in your Orthanc build, missing keys can hide toolbars).
+            "EnableStudyList": true,
+            "EnableDownloadDicomFile": true,
+            // CustomButtons: instance buttons render on each row in the instance list (expand study → series → instances), not inside OHIF/Stone.
+            // Use a root-absolute Url so hash routing under /ui/app/ still hits the Python plugin on this host.
+            "CustomButtons": {
+                "bulk-studies": [],
+                "study": [],
+                "series": [],
+                "instance": [
+                    {
+                        "HttpMethod": "POST",
+                        "Id": "ilo-inference-instance",
+                        "Tooltip": "ILO Inference",
+                        "Icon": "bi bi-cloud-arrow-up",
+                        "Url": "/ilo-inference",
+                        "Payload": {
+                            "Instance": "{UUID}"
+                        },
+                        "StartMessage": "ILO Inference in progress",
+                        "Refresh": true
+                    }
+                ]
+            }
+        }
+    },
+    "ConcurrentJobs": 2,
+    "HttpServerEnabled": true,
+    "OrthancExplorerEnabled": true,
+    "HttpPort": 8042,
+    "RemoteAccessAllowed": true,
+    "AuthenticationEnabled": false,
+    "DicomServerEnabled": true,
+    "DicomAet": "ORTHANC",
+    "DicomPort": 4242,
+    "DicomModalitiesInDatabase": true,
+    "UnknownSopClassAccepted": false,
+    "UnknownDicomTag": "reject",
+    "DicomScpTimeout": 30,
+    "HttpTimeout": 10,
+    "HttpThreadsCount": 50,
+    "UserContentType": {
+        // "sample" : 1024
+        // "sample2" : [ 1025, "application/pdf" ]
+    },
+    "KeepAlive": true,
+    "Verbose": true,
+    "LogExportedResources": true,
+    "HttpsVerifyPeers": false,
+    "HttpsRequestTimeout": 10,
+    "SslProtocols": [
+        "tlsv1",
+        "tlsv1.1",
+        "tlsv1.2"
+    ],
+    "RegisteredUsers": {},
+    "OrthancPeers": {},
+    "DicomModalities": {},
+    "StableAge": 60
+}

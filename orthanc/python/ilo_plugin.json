@@ -1,0 +1,14 @@
+{
+  "ilo_predict_base_url": "http://inference:7860",
+  "ILO_PDF_USE_ORTHANC_PREVIEW": true,
+  "ilo_top_k": 3,
+  "ilo_predict_timeout_sec": 180,
+  "pdf_research_notice": "For research and investigational use only. Not for clinical diagnosis, patient care, or treatment decisions.",
+  "pdf_letterhead": {
+    "Logo": "logo.png",
+    "Phone": "",
+    "Email": "",
+    "Website": "",
+    "Address": ""
+  }
+}

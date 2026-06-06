@@ -1,0 +1,6 @@
+.env
+
+# Optional local CXAS weights (large binary; do not commit)
+cxas/weights/*.pth
+
+orthanc/python/__pycache__/

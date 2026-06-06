@@ -1,0 +1,135 @@
+# Pull-only stack: CXAS preprocess + Ark inference + Orthanc (ILO PDF plugin).
+# No build context — images from Docker Hub (see .env.sample).
+#
+#   cd breader-model-deploy
+#   cp .env.sample .env    # edit DOCKER_HUB_* for private inference pull
+#   docker login -u sdscotti
+#   docker compose pull
+#   docker compose up -d
+#
+#   Inference UI: http://127.0.0.1:7860/
+#   Orthanc UI:   http://127.0.0.1:8042/
+
+services:
+  cxas-api:
+    image: ${CXAS_API_IMAGE:-sdscotti/cxr-preprocess-api:latest}
+    ports:
+      - "${CXAS_HOST_PORT:-8081}:8081"
+    environment:
+      CXAS_GPUS: ${CXAS_GPUS:-cpu}
+      CXAS_MODEL: ${CXAS_MODEL:-UNet_ResNet50_default}
+      CXAS_OUTPUT_TYPE: ${CXAS_OUTPUT_TYPE:-png}
+      CXAS_MAX_UPLOAD_MB: ${CXAS_MAX_UPLOAD_MB:-30}
+      CXAS_WORK_DIR: /data/cxas_work
+      CXAS_PROCESS_DIR: /data/process
+      CXAS_NORM: ${CXAS_NORM:-clipped}
+      CXAS_WINDOW_POLICY: ${CXAS_WINDOW_POLICY:-robust}
+      CXAS_OUTPUT_BIT_DEPTH: ${CXAS_OUTPUT_BIT_DEPTH:-8}
+      CXAS_NORM_P_LOW: ${CXAS_NORM_P_LOW:-0.5}
+      CXAS_NORM_P_HIGH: ${CXAS_NORM_P_HIGH:-99.5}
+      CXAS_MAX_OUTPUT_SIDE: ${CXAS_MAX_OUTPUT_SIDE:-1024}
+      CXAS_OUTPUT_WIDTH: ${CXAS_OUTPUT_WIDTH:-1024}
+      CXAS_PAD_LATERAL: ${CXAS_PAD_LATERAL:-true}
+      CXAS_CROP_MARGIN_PX: ${CXAS_CROP_MARGIN_PX:-16}
+      CXAS_SAVE_LUNG_UNION: ${CXAS_SAVE_LUNG_UNION:-false}
+      CXAS_PERSIST_SEGMENTATION: ${CXAS_PERSIST_SEGMENTATION:-false}
+      CXAS_OUTSIDE_DIM: ${CXAS_OUTSIDE_DIM:-0.4}
+      CXAS_MASK_FEATHER_PX: ${CXAS_MASK_FEATHER_PX:-16}
+    volumes:
+      - cxas_work:/data/cxas_work
+      - cxas_process:/data/process
+      - cxas_cache:/root/.cxas
+      - ./cxas/weights:/data/local_weights:ro
+    shm_size: ${CXAS_SHM_SIZE:-2gb}
+    mem_limit: ${CXAS_MEM_LIMIT:-8g}
+    restart: unless-stopped
+    networks:
+      - cxr-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c 'import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(\"http://localhost:8081/health\", timeout=2).getcode()==200 else 1)'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  inference:
+    image: ${INFER_IMAGE:-sdscotti/breader-inference:latest}
+    ports:
+      - "${INFER_HOST_PORT:-7860}:7860"
+    environment:
+      INFER_REPO_ROOT: ${INFER_REPO_ROOT:-/code}
+      INFER_ARTIFACT_DIR: ${INFER_ARTIFACT_DIR:-/code/inference/artifacts/ark_1376_8bit}
+      INFER_EMBEDDING_KIND: ${INFER_EMBEDDING_KIND:-ark-1376}
+      INFER_ARK_MODEL_PATH: ${INFER_ARK_MODEL_PATH:-/code/Ark/Ark6_swinLarge768_ep50.pth.tar}
+      INFER_ARK_DEVICE: ${INFER_ARK_DEVICE:-cpu}
+      INFER_DICOM_MODE: ${INFER_DICOM_MODE:-basic}
+      INFER_MAX_UPLOAD_MB: ${INFER_MAX_UPLOAD_MB:-20}
+      INFER_DEFAULT_TOP_K: ${INFER_DEFAULT_TOP_K:-3}
+      INFER_PREPROCESSING_BACKEND: ${INFER_PREPROCESSING_BACKEND:-cxas}
+      CXAS_URL: ${CXAS_URL:-http://cxas-api:8081}
+      CXAS_NORM: ${CXAS_NORM:-clipped}
+      CXAS_WINDOW_POLICY: ${CXAS_WINDOW_POLICY:-robust}
+      CXAS_OUTPUT_BIT_DEPTH: ${CXAS_OUTPUT_BIT_DEPTH:-8}
+      CXAS_NORM_P_LOW: ${CXAS_NORM_P_LOW:-0.5}
+      CXAS_NORM_P_HIGH: ${CXAS_NORM_P_HIGH:-99.5}
+      CXAS_MAX_OUTPUT_SIDE: ${CXAS_MAX_OUTPUT_SIDE:-1024}
+      CXAS_OUTPUT_WIDTH: ${CXAS_OUTPUT_WIDTH:-1024}
+      CXAS_PAD_LATERAL: ${CXAS_PAD_LATERAL:-true}
+      CXAS_CROP_MARGIN_PX: ${CXAS_CROP_MARGIN_PX:-16}
+      CXAS_OUTSIDE_DIM: ${CXAS_OUTSIDE_DIM:-0.4}
+      CXAS_MASK_FEATHER_PX: ${CXAS_MASK_FEATHER_PX:-16}
+      CXAS_APPLY_TO_RASTER: ${CXAS_APPLY_TO_RASTER:-true}
+      CXAS_FALLBACK_TO_BASIC: ${CXAS_FALLBACK_TO_BASIC:-false}
+      CXAS_REQUEST_TIMEOUT_S: ${CXAS_REQUEST_TIMEOUT_S:-120}
+    depends_on:
+      cxas-api:
+        condition: service_healthy
+    shm_size: ${INFER_SHM_SIZE:-2gb}
+    restart: unless-stopped
+    networks:
+      - cxr-net
+
+  orthanc:
+    image: ${ORTHANC_IMAGE:-sdscotti/orthanc-breader:latest}
+    container_name: ${ORTHANC_CONTAINER_NAME:-orthanc-ilo}
+    ports:
+      - "${ORTHANC_HTTP_PORT:-8042}:8042"
+      - "${ORTHANC_DICOM_PORT:-4242}:4242"
+    volumes:
+      - ./orthanc/config/orthanc.json:/etc/orthanc/orthanc.json:ro
+      - ./orthanc/config/ohif.js:/etc/orthanc/ohif.js:ro
+      - ./orthanc/python:/usr/share/orthanc/plugins/python:ro
+      - orthanc-db:/var/lib/orthanc/db
+      - orthanc-data:/var/lib/orthanc
+      - ./orthanc/data/worklists:/var/lib/orthanc/worklists:rw
+    environment:
+      ILO_PREDICT_BASE_URL: ${ILO_PREDICT_BASE_URL:-http://inference:7860}
+      ILO_PDF_USE_ORTHANC_PREVIEW: ${ILO_PDF_USE_ORTHANC_PREVIEW:-true}
+    command: ["/etc/orthanc/orthanc.json"]
+    depends_on:
+      inference:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - cxr-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8042/system"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  cxr-net:
+    driver: bridge
+
+volumes:
+  cxas_work:
+  cxas_process:
+  cxas_cache:
+  orthanc-db:
+  orthanc-data:
