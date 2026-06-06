@@ -1,4 +1,5 @@
 .env
+.DS_Store
 
 # Optional local CXAS weights (large binary; do not commit)
 cxas/weights/*.pth
