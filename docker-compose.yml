@@ -2,9 +2,8 @@
 # No build context — images from Docker Hub (see .env.sample).
 #
 #   cd breader-model-deploy
-#   cp .env.sample .env    # edit DOCKER_HUB_* for private inference pull
-#   docker login -u sdscotti
-#   docker compose pull
+#   cp .env.sample .env    # edit DOCKER_HUB_TOKEN for private inference pull
+#   ./pull.sh              # or: docker login && docker compose pull
 #   docker compose up -d
 #
 #   Inference UI: http://127.0.0.1:7860/
@@ -19,7 +18,7 @@ services:
       CXAS_GPUS: ${CXAS_GPUS:-cpu}
       CXAS_MODEL: ${CXAS_MODEL:-UNet_ResNet50_default}
       CXAS_OUTPUT_TYPE: ${CXAS_OUTPUT_TYPE:-png}
-      CXAS_MAX_UPLOAD_MB: ${CXAS_MAX_UPLOAD_MB:-30}
+      CXAS_MAX_UPLOAD_MB: ${CXAS_MAX_UPLOAD_MB:-50}
       CXAS_WORK_DIR: /data/cxas_work
       CXAS_PROCESS_DIR: /data/process
       CXAS_NORM: ${CXAS_NORM:-clipped}
@@ -89,6 +88,7 @@ services:
       cxas-api:
         condition: service_healthy
     shm_size: ${INFER_SHM_SIZE:-2gb}
+    mem_limit: ${INFER_MEM_LIMIT:-12g}
     restart: unless-stopped
     networks:
       - cxr-net

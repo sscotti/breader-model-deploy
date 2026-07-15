@@ -216,10 +216,13 @@ def _predict_summary_for_client(predict: Dict[str, Any]) -> Dict[str, Any]:
         for key in (
             "q2a",
             "q3a",
+            "normal_vs_not",
+            "pleural_calc_any",
+            "pleural_calc_face",
             "profusion_0_3",
+            "profusion_full_category",
             "small_opacities_multiclass",
             "large_opacity_stage",
-            "pleural_calc_diaphragm",
         ):
             if key not in preds:
                 continue
