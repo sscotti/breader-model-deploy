@@ -127,6 +127,24 @@ Then `./pull.sh && docker compose up -d --force-recreate`.
 
 
 
+## Upstream resources
+
+This stack builds on the following public models and tools (weights and packaging are separate; see each project’s license / access terms):
+
+| Resource | Role in this deploy |
+| -------- | ------------------- |
+| [Ark / Ark+](https://github.com/jlianglab/Ark) (jlianglab) | Swin-Large CXR foundation encoder used for **1376-D embeddings** and the primary classifier / neighbor space |
+| [Google CXR Foundation (ELIXR)](https://huggingface.co/google/cxr-foundation/tree/main) | Optional **ELIXR** embedding backends and retrieval spaces in the Gradio UI ([Health AI Developer Foundations](https://developers.google.com/health-ai-developer-foundations) terms apply on Hugging Face) |
+| [Chest X-Ray Anatomy Segmentation (CXAS)](https://github.com/ConstantinSeibold/ChestXRayAnatomySegmentation) | Anatomy segmentation used by the **preprocess API** (crop / lung-aware normalization before embed) |
+
+Ark checkpoint used here: `Ark6_swinLarge768_ep50` (request / download via the Ark project’s published channels). CXAS UNet weights are fetched on first container start or seeded under `cxas/weights/`.
+
+### Training data
+
+Labeled chest radiographs used to train the classifier heads were obtained through the
+[NIOSH B Reader Program](https://www.cdc.gov/niosh/chestradiography/php/about/), including images
+associated with the NIOSH [Chest Image Reposiory](https://archive.cdc.gov/www_cdc_gov/niosh/topics/chestradiography/repository.html). NIOSH does not endorse this software; any classification outputs are
+research / decision-support only and are not a substitute for a certified B Reader.
 
 ## Maintainers (build + push from dev repo)
 
