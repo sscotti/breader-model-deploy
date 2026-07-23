@@ -5,20 +5,25 @@ clone of the full training repo required.
 
 **GitHub:** [github.com/sscotti/breader-model-deploy](https://github.com/sscotti/breader-model-deploy)
 
-| Service | Image | Visibility |
-| --- | --- | --- |
-| CXAS preprocess API | `sdscotti/cxr-preprocess-api` | Public |
-| Ark inference + Gradio | `sdscotti/breader-inference` | **Private** (Hub login required) |
-| Orthanc + ILO plugin | `sdscotti/orthanc-breader` | Public |
+
+| Service                | Image                         | Visibility                       |
+| ---------------------- | ----------------------------- | -------------------------------- |
+| CXAS preprocess API    | `sdscotti/cxr-preprocess-api` | Public                           |
+| Ark inference + Gradio | `sdscotti/breader-inference`  | **Private** (Hub login required) |
+| Orthanc + ILO plugin   | `sdscotti/orthanc-breader`    | Public                           |
+
+
+
 
 ## What you get (current stack)
 
 - **DICOM or PNG** upload → CXAS anatomy-aware preprocessing → **Ark** embedding
 - **Ten classifier heads** (Q2A, Q3A, normal vs not, pleural screen/face/diaphragm, profusion 0–3,
-  full ILO category, small-opacity type, large-opacity stage)
-- **Neighbor retrieval** over ~1084 PNG films in `datasets_png/8bit_robust/`; classifier heads trained on expanded cohort (~1205 films). Default **Ark (1376-D)**; optional Google
-  ELIXR / contrastive spaces in the UI (see [API.md](API.md))
+full ILO category, small-opacity type, large-opacity stage)
+- **Neighbor retrieval** from training dataset .png images.  Default **Ark (1376-D)**; optional Google ELIXR / contrastive spaces in the UI (see [API.md](API.md))
 - **Orthanc** ILO plugin → multi-page PDF report attached to the study
+
+Although the GitHub repo is public, you will need a  DOCKER_HUB_TOKEN from the developer to pull the inference image from Docker Hub.
 
 Models, neighbor PNGs, Ark weights, and bundled heads ship **inside** the inference image.
 CXAS UNet weights download on first start (or seed via `cxas/weights/`).
@@ -38,12 +43,16 @@ breader-model-deploy/
     data/worklists/       # DICOM worklist drop folder
 ```
 
+
+
 ## Requirements
 
 - Docker Engine 24+ and Docker Compose v2
 - **Docker Desktop → Settings → Resources → Memory: 12 GB+** (inference + CXAS on CPU)
 - ~15 GB free disk (images + CXAS weights + Orthanc data)
-- **Read access** to private repo `sdscotti/breader-inference` (Hub read token from maintainer)
+- **Read access** to private repo `sdscotti/breader-inference` (Hub read token DOCKER_HUB_TOKEN  from maintainer)
+
+
 
 ## Quick start
 
@@ -58,8 +67,8 @@ docker compose up -d
 
 Open:
 
-- **Inference UI / API:** http://127.0.0.1:7860/
-- **Orthanc:** http://127.0.0.1:8042/
+- **Inference UI / API:** [http://127.0.0.1:7860/](http://127.0.0.1:7860/)
+- **Orthanc:** [http://127.0.0.1:8042/](http://127.0.0.1:8042/)
 
 First CXAS start may take several minutes while UNet weights download (unless seeded).
 
@@ -79,6 +88,8 @@ Upload a DICOM in the Gradio UI or see [API.md](API.md) for `curl` examples.
 ```bash
 docker compose up -d cxas-api inference
 ```
+
+
 
 ## Orthanc ILO PDF button
 
@@ -102,16 +113,20 @@ Then `./pull.sh && docker compose up -d --force-recreate`.
 
 ## Troubleshooting
 
-| Symptom | Fix |
-| --- | --- |
-| `pull access denied` on inference | `docker login` with read token; confirm access to private repo |
+
+| Symptom                                                         | Fix                                                                                                                                                 |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pull access denied` on inference                               | `docker login` with read token; confirm access to private repo                                                                                      |
 | Gradio **“Connection to the server was lost”** on Run Inference | Usually **OOM** (exit 137). Raise Docker Desktop memory to **12 GB+**; keep retrieval on **Ark**; `docker compose up -d --force-recreate inference` |
-| Inference restarts in a loop | `docker compose logs inference --tail 50`; check OOM in `docker events` |
-| Inference starts before CXAS ready | Wait for `cxas-api` healthy; restart inference |
-| CXAS slow first boot | Normal; or add `UNet_ResNet50_default.pth` under `cxas/weights/` |
-| Old model after maintainer push | `./pull.sh && docker compose up -d --force-recreate` |
-| Port in use | Change `*_HOST_PORT` in `.env` |
-| `orthanc-ilo` name already in use | `docker rm -f orthanc-ilo` then `docker compose up -d` |
+| Inference restarts in a loop                                    | `docker compose logs inference --tail 50`; check OOM in `docker events`                                                                             |
+| Inference starts before CXAS ready                              | Wait for `cxas-api` healthy; restart inference                                                                                                      |
+| CXAS slow first boot                                            | Normal; or add `UNet_ResNet50_default.pth` under `cxas/weights/`                                                                                    |
+| Old model after maintainer push                                 | `./pull.sh && docker compose up -d --force-recreate`                                                                                                |
+| Port in use                                                     | Change `*_HOST_PORT` in `.env`                                                                                                                      |
+| `orthanc-ilo` name already in use                               | `docker rm -f orthanc-ilo` then `docker compose up -d`                                                                                              |
+
+
+
 
 ## Maintainers (build + push from dev repo)
 
