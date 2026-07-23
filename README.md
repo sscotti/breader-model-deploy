@@ -36,6 +36,9 @@ breader-model-deploy/
   .env.sample             # copy → .env
   pull.sh                 # docker login + compose pull
   API.md                  # predict / heads summary for operators
+  LICENSE                 # Apache-2.0 (original glue / docs in this folder)
+  NOTICE                  # third-party model / data attributions
+  TERMS.md                # intended use for the assembled Docker stack
   cxas/weights/           # optional UNet seed (see README there)
   orthanc/
     config/               # orthanc.json, ohif.js
@@ -143,8 +146,18 @@ Ark checkpoint used here: `Ark6_swinLarge768_ep50` (request / download via the A
 
 Labeled chest radiographs used to train the classifier heads were obtained through the
 [NIOSH B Reader Program](https://www.cdc.gov/niosh/chestradiography/php/about/), including images
-associated with the NIOSH [Chest Image Reposiory](https://archive.cdc.gov/www_cdc_gov/niosh/topics/chestradiography/repository.html). NIOSH does not endorse this software; any classification outputs are
+associated with the NIOSH [Chest Image Repository](https://archive.cdc.gov/www_cdc_gov/niosh/topics/chestradiography/repository.html)
+(CIR). NIOSH does not endorse this software; any classification outputs are
 research / decision-support only and are not a substitute for a certified B Reader.
+
+## License
+
+- **Original code** in this folder (compose, Orthanc plugin packaging, scripts, docs):
+  [Apache License 2.0](LICENSE) — Copyright 2026 Stephen Douglas Scotti.
+- **Assembled stack / Docker images** (Ark weights, CXAS, optional Google ELIXR, neighbor
+  assets): see [NOTICE](NOTICE) and [TERMS.md](TERMS.md). Intended for **research and
+  education** only; upstream non-commercial and HAI-DEF terms still apply. Not a medical
+  device and not a substitute for a certified B Reader.
 
 ## Maintainers (build + push from dev repo)
 

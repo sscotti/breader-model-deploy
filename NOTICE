@@ -1,0 +1,83 @@
+B-reader model deploy
+Copyright 2026 Stephen Douglas Scotti
+
+This product includes software developed for ILO / B-reader style chest
+radiograph decision support (research and education). Original glue code,
+compose files, Orthanc plugin packaging, and documentation in this repository
+are licensed under the Apache License, Version 2.0 (see LICENSE).
+
+---------------------------------------------------------------------------
+IMPORTANT — DISTRIBUTED STACK / MODEL WEIGHTS
+---------------------------------------------------------------------------
+
+Docker images and bundled model artifacts are NOT licensed solely under
+Apache-2.0. They incorporate third-party models, weights, and (where present)
+reference images that remain under their own licenses and terms. Use of the
+assembled stack for research or education is subject to those upstream terms.
+Commercial use of Ark and/or CXAS components generally requires separate
+permission from the respective rights holders. Optional Google ELIXR /
+CXR Foundation components remain subject to the Health AI Developer
+Foundations Terms of Use.
+
+This software is provided for research and educational decision-support only.
+It is not a medical device, is not a certified NIOSH B Reader, and must not be
+used as a substitute for clinical judgment or a certified B Reader
+interpretation. NIOSH / CDC do not endorse this software.
+
+---------------------------------------------------------------------------
+Third-party notices
+---------------------------------------------------------------------------
+
+1) Ark / Ark+ (Swin-Large CXR foundation encoder)
+
+   Project: https://github.com/jlianglab/Ark
+   Copyright Arizona Board of Regents for and on behalf of Arizona State
+   University. Released under the ASU GitHub Project License (non-commercial /
+   academic research; commercial use requires a separate written agreement
+   with ASU). Patent pending. Cite the Ark / Ark+ / Nature papers as required
+   by that project.
+
+2) Google CXR Foundation (ELIXR) — optional embedding / retrieval backends
+
+   Model card: https://huggingface.co/google/cxr-foundation
+   Terms: Health AI Developer Foundations (HAI-DEF) Terms of Use
+   https://developers.google.com/health-ai-developer-foundations/terms
+   Prohibited Use Policy:
+   https://developers.google.com/health-ai-developer-foundations/prohibited-use-policy
+
+   HAI-DEF is provided under and subject to the Health AI Developer Foundations
+   Terms of Use found at
+   https://developers.google.com/health-ai-developer-foundations/terms
+
+   HAI-DEF recipe / client source code (where used) is typically Apache-2.0;
+   trained model weights and Model Derivatives are governed by the HAI-DEF
+   Terms, not by Apache-2.0 alone. Recipients of redistributed HAI-DEF or
+   Model Derivatives must receive a copy of those Terms and remain bound by
+   the use restrictions therein (including clinical / regulatory requirements
+   where applicable).
+
+3) Chest X-Ray Anatomy Segmentation (CXAS)
+
+   Project: https://github.com/ConstantinSeibold/ChestXRayAnatomySegmentation
+   Used by the preprocess API for anatomy-aware cropping / normalization.
+   Distributed on PyPI as free for non-commercial use; confirm the project’s
+   current license before any commercial deployment.
+
+4) NIOSH / CDC training images (B Reader Program / Chest Image Repository)
+
+   About: https://www.cdc.gov/niosh/chestradiography/php/about/
+   CIR (archived): https://archive.cdc.gov/www_cdc_gov/niosh/topics/chestradiography/repository.html
+
+   Labeled radiographs used to train classifier heads were obtained through
+   the NIOSH B Reader Program, including Chest Image Repository (CIR)
+   materials. Acknowledgment only; no NIOSH endorsement. Do not imply CDC /
+   NIOSH approval of this software or its outputs.
+
+---------------------------------------------------------------------------
+Additional open-source dependencies
+---------------------------------------------------------------------------
+
+Runtime images also include third-party open-source libraries (e.g. PyTorch,
+Gradio, Orthanc, and related packages) under their respective licenses
+(typically Apache-2.0, BSD, MIT, or similar). See each package’s upstream
+project for details.
