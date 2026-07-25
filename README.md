@@ -23,6 +23,8 @@ full ILO category, small-opacity type, large-opacity stage)
 - **Neighbor retrieval** from training dataset .png images.  Default **Ark (1376-D)**; optional Google ELIXR / contrastive spaces in the UI (see [API.md](API.md))
 - **Orthanc** ILO plugin → multi-page PDF report attached to the study
 
+![Simplified ILO B-reader Gradio UI](images/gui.png)
+
 Although the GitHub repo is public, you will need a  DOCKER_HUB_TOKEN from the developer to pull the inference image from Docker Hub.
 
 Models, neighbor PNGs, Ark weights, and bundled heads ship **inside** the inference image.
@@ -39,6 +41,7 @@ breader-model-deploy/
   LICENSE                 # Apache-2.0 (original glue / docs in this folder)
   NOTICE                  # third-party model / data attributions
   TERMS.md                # intended use for the assembled Docker stack
+  images/gui.png          # Gradio UI screenshot
   cxas/weights/           # optional UNet seed (see README there)
   orthanc/
     config/               # orthanc.json, ohif.js
