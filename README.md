@@ -23,7 +23,7 @@ full ILO category, small-opacity type, large-opacity stage)
 - **Neighbor retrieval** from training dataset .png images.  Default **Ark (1376-D)**; optional Google ELIXR / contrastive spaces in the UI (see [API.md](API.md))
 - **Orthanc** ILO plugin → multi-page PDF report attached to the study
 
-![Simplified ILO B-reader Gradio UI](images/gui.png)
+Simplified ILO B-reader Gradio UI
 
 Although the GitHub repo is public, you will need a  DOCKER_HUB_TOKEN from the developer to pull the inference image from Docker Hub.
 
@@ -57,6 +57,7 @@ breader-model-deploy/
 - **Docker Desktop → Settings → Resources → Memory: 12 GB+** (inference + CXAS on CPU)
 - ~15 GB free disk (images + CXAS weights + Orthanc data)
 - **Read access** to private repo `sdscotti/breader-inference` (Hub read token DOCKER_HUB_TOKEN  from maintainer)
+- The Docker Hub images are for linux/amd64 arch.  My local dev are for Mac Silicon
 
 
 
@@ -133,15 +134,18 @@ Then `./pull.sh && docker compose up -d --force-recreate`.
 
 
 
+
 ## Upstream resources
 
 This stack builds on the following public models and tools (weights and packaging are separate; see each project’s license / access terms):
 
-| Resource | Role in this deploy |
-| -------- | ------------------- |
-| [Ark / Ark+](https://github.com/jlianglab/Ark) (jlianglab) | Swin-Large CXR foundation encoder used for **1376-D embeddings** and the primary classifier / neighbor space |
-| [Google CXR Foundation (ELIXR)](https://huggingface.co/google/cxr-foundation/tree/main) | Optional **ELIXR** embedding backends and retrieval spaces in the Gradio UI ([Health AI Developer Foundations](https://developers.google.com/health-ai-developer-foundations) terms apply on Hugging Face) |
-| [Chest X-Ray Anatomy Segmentation (CXAS)](https://github.com/ConstantinSeibold/ChestXRayAnatomySegmentation) | Anatomy segmentation used by the **preprocess API** (crop / lung-aware normalization before embed) |
+
+| Resource                                                                                                     | Role in this deploy                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Ark / Ark+](https://github.com/jlianglab/Ark) (jlianglab)                                                   | Swin-Large CXR foundation encoder used for **1376-D embeddings** and the primary classifier / neighbor space                                                                                               |
+| [Google CXR Foundation (ELIXR)](https://huggingface.co/google/cxr-foundation/tree/main)                      | Optional **ELIXR** embedding backends and retrieval spaces in the Gradio UI ([Health AI Developer Foundations](https://developers.google.com/health-ai-developer-foundations) terms apply on Hugging Face) |
+| [Chest X-Ray Anatomy Segmentation (CXAS)](https://github.com/ConstantinSeibold/ChestXRayAnatomySegmentation) | Anatomy segmentation used by the **preprocess API** (crop / lung-aware normalization before embed)                                                                                                         |
+
 
 Ark checkpoint used here: `Ark6_swinLarge768_ep50` (request / download via the Ark project’s published channels). CXAS UNet weights are fetched on first container start or seeded under `cxas/weights/`.
 
@@ -156,11 +160,13 @@ research / decision-support only and are not a substitute for a certified B Read
 ## License
 
 - **Original code** in this folder (compose, Orthanc plugin packaging, scripts, docs):
-  [Apache License 2.0](LICENSE) — Copyright 2026 Stephen Douglas Scotti.
+[Apache License 2.0](LICENSE) — Copyright 2026 Stephen Douglas Scotti.
 - **Assembled stack / Docker images** (Ark weights, CXAS, optional Google ELIXR, neighbor
-  assets): see [NOTICE](NOTICE) and [TERMS.md](TERMS.md). Intended for **research and
-  education** only; upstream non-commercial and HAI-DEF terms still apply. Not a medical
-  device and not a substitute for a certified B Reader.
+assets): see [NOTICE](NOTICE) and [TERMS.md](TERMS.md). Intended for **research and
+education** only; upstream non-commercial and HAI-DEF terms still apply. Not a medical
+device and not a substitute for a certified B Reader.
+
+
 
 ## Maintainers (build + push from dev repo)
 
