@@ -42,6 +42,7 @@ breader-model-deploy/
   NOTICE                  # third-party model / data attributions
   TERMS.md                # intended use for the assembled Docker stack
   images/gui.png          # Gradio UI screenshot
+  images/projections/     # Ark PCA / t-SNE / UMAP thumbs (profusion + opacity type)
   cxas/weights/           # optional UNet seed (see README there)
   orthanc/
     config/               # orthanc.json, ohif.js
@@ -157,6 +158,54 @@ associated with the NIOSH [Chest Image Repository](https://archive.cdc.gov/www_c
 (CIR). NIOSH does not endorse this software; any classification outputs are
 research / decision-support only and are not a substitute for a certified B Reader.
 
+## Model performance (OOF)
+
+Expanded cohort out-of-fold comparison: **Google ELIXR vs Ark** (primary production
+encoder is Ark). Regenerated **2026-07-11**.
+
+| | |
+| --- | --- |
+| **Google heads** | `GoogleCXR/model/<task>/` (dev repo) |
+| **Ark heads** | `Ark/model/<task>/` (bundled in inference image) |
+| **Training cohort** | ~1205 films via `training_sets/expanded_8bit_vindr_enhanced.txt` |
+| **Labels** | Consensus under `datasets_png/8bit_robust/labels` + VinDr |
+
+### Summary (primary metric per task)
+
+| Task | Primary metrics | Google | Ark | Δ (Ark − Google) | Edge |
+| ---- | --------------- | ------ | --- | ---------------- | ---- |
+| q2a_binary | AUROC / F1 | 0.962 / 0.910 | 0.973 / 0.926 | +0.011 / +0.017 | Ark |
+| q3a_binary | AUROC / F1 | 0.860 / 0.609 | 0.873 / 0.623 | +0.013 / +0.014 | Ark |
+| normal_vs_not | AUROC / F1 | 0.965 / 0.815 | 0.974 / 0.841 | +0.009 / +0.026 | Ark |
+| profusion_0-3 | QWK / MAE | 0.855 / 0.282 | 0.887 / 0.229 | +0.032 / −0.053 | Ark |
+| profusion_full_category | QWK / Accuracy | 0.897 / 0.452 | 0.921 / 0.481 | +0.024 / +0.028 | Ark |
+| small_opacities_multiclass_pure | Macro F1 / Macro AUROC | 0.803 / 0.938 | 0.831 / 0.953 | +0.028 / +0.015 | Ark |
+| large_opacity_present | AUROC / F1 | 0.976 / 0.745 | 0.987 / 0.830 | +0.011 / +0.085 | Ark |
+| large_opacities | QWK / MAE | 0.744 / 0.111 | 0.813 / 0.086 | +0.069 / −0.025 | Ark |
+| pleural_calc_any | AUROC / F1 | 0.874 / 0.339 | 0.899 / 0.355 | +0.025 / +0.016 | Ark |
+| pleural_calc_face | AUROC / MAP | 0.884 / 0.470 | 0.933 / 0.682 | +0.049 / +0.211 | Ark |
+| pleural_calc_diaphragm | AUROC / F1 | 0.883 / 0.157 | 0.889 / 0.123 | +0.006 / −0.034 | Ark |
+
+OOF metrics are the honest generalization estimate for these heads. In-sample / full-cohort
+rescored numbers look stronger and are **not** for publication. Not a clinical validation;
+an independent labeled set is still needed before claiming deploy-ready performance.
+
+### Sample sizes
+
+| Task | n | Head |
+| ---- | - | ---- |
+| q2a_binary | 1196 | lr |
+| q3a_binary | 1196 | lr |
+| normal_vs_not | 1196 | lr |
+| profusion_0-3 | 1196 | ordinal_logit |
+| profusion_full_category | 1196 | ordinal_logit |
+| small_opacities_multiclass_pure | 754 | multinomial_logistic_regression |
+| large_opacity_present | 1196 | lr |
+| large_opacities | 1196 | ordinal_logit |
+| pleural_calc_any | 1196 | pleural_calc_multilabel |
+| pleural_calc_face | 1196 | pleural_calc_multilabel |
+| pleural_calc_diaphragm | 1196 | pleural_calc_multilabel |
+
 ## License
 
 - **Original code** in this folder (compose, Orthanc plugin packaging, scripts, docs):
@@ -192,3 +241,37 @@ Inference image uses `inference/Dockerfile` (unified Ark + ELIXR embed backends)
 Collaborators only need **this** folder + Docker + Hub token.
 
 Zip or share `breader-model-deploy/` with collaborators; they never need the training tree.
+
+## Embedding projections (Ark, expanded cohort)
+
+3-D PCA / t-SNE / UMAP of the **Ark 1376-D** training embeddings, colored by consensus
+labels (same expanded cohort as the OOF table above). Small thumbs only; full-res
+artifacts live in the training repo under `visualizations/out/ark_alllabels/`.
+
+### Profusion (0–3)
+
+**PCA**
+
+![Ark profusion PCA](./images/projections/ark_profusion_pca.png)
+
+**t-SNE**
+
+![Ark profusion t-SNE](./images/projections/ark_profusion_tsne.png)
+
+**UMAP**
+
+![Ark profusion UMAP](./images/projections/ark_profusion_umap.png)
+
+### Small-opacity type (pure)
+
+**PCA**
+
+![Ark opacity type PCA](./images/projections/ark_opacity_type_pca.png)
+
+**t-SNE**
+
+![Ark opacity type t-SNE](./images/projections/ark_opacity_type_tsne.png)
+
+**UMAP**
+
+![Ark opacity type UMAP](./images/projections/ark_opacity_type_umap.png)
