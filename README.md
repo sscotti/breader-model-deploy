@@ -161,7 +161,7 @@ research / decision-support only and are not a substitute for a certified B Read
 ## Model performance (OOF)
 
 Expanded cohort out-of-fold comparison: **Google ELIXR vs Ark** (primary production
-encoder is Ark). Regenerated **2026-07-11**.
+encoder is Ark). Regenerated **2026-08-02** (pleural thresholds now **max F1**).
 
 | | |
 | --- | --- |
@@ -182,13 +182,14 @@ encoder is Ark). Regenerated **2026-07-11**.
 | small_opacities_multiclass_pure | Macro F1 / Macro AUROC | 0.803 / 0.938 | 0.831 / 0.953 | +0.028 / +0.015 | Ark |
 | large_opacity_present | AUROC / F1 | 0.976 / 0.745 | 0.987 / 0.830 | +0.011 / +0.085 | Ark |
 | large_opacities | QWK / MAE | 0.744 / 0.111 | 0.813 / 0.086 | +0.069 / −0.025 | Ark |
-| pleural_calc_any | AUROC / F1 | 0.874 / 0.339 | 0.899 / 0.355 | +0.025 / +0.016 | Ark |
+| pleural_calc_any | AUROC / F1 | 0.874 / 0.487 | 0.899 / 0.590 | +0.025 / +0.102 | Ark |
 | pleural_calc_face | AUROC / MAP | 0.884 / 0.470 | 0.933 / 0.682 | +0.049 / +0.211 | Ark |
-| pleural_calc_diaphragm | AUROC / F1 | 0.883 / 0.157 | 0.889 / 0.123 | +0.006 / −0.034 | Ark |
+| pleural_calc_diaphragm | AUROC / F1 | 0.883 / 0.447 | 0.889 / 0.524 | +0.006 / +0.077 | Ark |
 
-OOF metrics are the honest generalization estimate for these heads. In-sample / full-cohort
-rescored numbers look stronger and are **not** for publication. Not a clinical validation;
-an independent labeled set is still needed before claiming deploy-ready performance.
+Binary / pleural operating points use **max F1** on pooled OOF. OOF metrics are the honest
+generalization estimate for these heads. In-sample / full-cohort rescored numbers look stronger
+and are **not** for publication. Not a clinical validation; an independent labeled set is still
+needed before claiming deploy-ready performance.
 
 ### Sample sizes
 
