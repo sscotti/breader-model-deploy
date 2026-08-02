@@ -264,6 +264,9 @@ artifacts live in the training repo under `visualizations/out/ark_alllabels/`.
 
 ### Small-opacity type (pure)
 
+Same **n = 754** cohort as the deployed `small_opacities_multiclass_pure` head
+(Neither / Round / Interstitial; Mixed dropped; Q3A=N; strict-normal neither).
+
 **PCA**
 
 ![Ark opacity type PCA](./images/projections/ark_opacity_type_pca.png)
