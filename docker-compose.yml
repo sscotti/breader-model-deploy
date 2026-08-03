@@ -3,17 +3,44 @@
 #
 #   cd breader-model-deploy
 #   cp .env.sample .env    # edit DOCKER_HUB_TOKEN for private inference pull
+#   ./scripts/gen_localhost_certs.sh
+#   ./scripts/gen_basicauth_users.sh breader 'your-long-password'
 #   ./pull.sh              # or: docker login && docker compose pull
 #   docker compose up -d
 #
-#   Inference UI: http://127.0.0.1:7860/
-#   Orthanc UI:   http://127.0.0.1:8042/
+#   Inference UI (HTTPS + Basic Auth, 3-strike IP lockout): https://<host>:8443/
+#   Inference HTTP (localhost debug): http://127.0.0.1:7860/
+#   CXAS / Orthanc HTTP+DICOM: localhost only (SSH tunnel to reach remotely)
+#   Orthanc → inference stays http://inference:7860 on the Docker network (no TLS/auth).
 
 services:
+  authgate:
+    build: ./authgate
+    image: ${AUTHGATE_IMAGE:-sdscotti/breader-authgate:arm64}
+    environment:
+      AUTHGATE_USERS_FILE: /auth/users.basicauth
+      AUTHGATE_MAX_FAILURES: ${AUTHGATE_MAX_FAILURES:-3}
+      AUTHGATE_LOCKOUT_SECONDS: ${AUTHGATE_LOCKOUT_SECONDS:-900}
+    volumes:
+      - ./auth:/auth:ro
+    restart: unless-stopped
+    networks:
+      - cxr-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:9090/healthz', timeout=2)\"",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
+
   cxas-api:
     image: ${CXAS_API_IMAGE:-sdscotti/cxr-preprocess-api:latest}
     ports:
-      - "${CXAS_HOST_PORT:-8081}:8081"
+      - "127.0.0.1:${CXAS_HOST_PORT:-8081}:8081"
     environment:
       CXAS_GPUS: ${CXAS_GPUS:-cpu}
       CXAS_MODEL: ${CXAS_MODEL:-UNet_ResNet50_default}
@@ -57,8 +84,9 @@ services:
 
   inference:
     image: ${INFER_IMAGE:-sdscotti/breader-inference:latest}
+    # Localhost-only on the host (not LAN). Public Gradio access is via Caddy :8443.
     ports:
-      - "${INFER_HOST_PORT:-7860}:7860"
+      - "127.0.0.1:${INFER_HOST_PORT:-7860}:7860"
     environment:
       INFER_REPO_ROOT: ${INFER_REPO_ROOT:-/code}
       INFER_ARTIFACT_DIR: ${INFER_ARTIFACT_DIR:-/code/inference/artifacts/ark_1376_8bit}
@@ -93,12 +121,33 @@ services:
     networks:
       - cxr-net
 
+  caddy:
+    image: ${CADDY_IMAGE:-caddy:2-alpine}
+    # Public Gradio / API entry (TLS + Basic Auth + lockout). Bind all interfaces.
+    ports:
+      - "${CADDY_HTTPS_PORT:-8443}:8443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/entrypoint.sh:/entrypoint.sh:ro
+      - ./certs:/etc/caddy/certs:ro
+      - ./auth:/etc/caddy/auth:ro
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    depends_on:
+      inference:
+        condition: service_started
+      authgate:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cxr-net
+
   orthanc:
     image: ${ORTHANC_IMAGE:-sdscotti/orthanc-breader:latest}
     container_name: ${ORTHANC_CONTAINER_NAME:-orthanc-ilo}
+    # Localhost only — reach remotely via SSH tunnel, not a public publish.
     ports:
-      - "${ORTHANC_HTTP_PORT:-8042}:8042"
-      - "${ORTHANC_DICOM_PORT:-4242}:4242"
+      - "127.0.0.1:${ORTHANC_HTTP_PORT:-8042}:8042"
+      - "127.0.0.1:${ORTHANC_DICOM_PORT:-4242}:4242"
     volumes:
       - ./orthanc/config/orthanc.json:/etc/orthanc/orthanc.json:ro
       - ./orthanc/config/ohif.js:/etc/orthanc/ohif.js:ro

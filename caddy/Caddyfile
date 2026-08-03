@@ -1,0 +1,25 @@
+# TLS terminator + forward_auth (Basic Auth + lockout) in front of Gradio / FastAPI.
+# Inference stays plain HTTP on the Docker network (Orthanc → http://inference:7860).
+#
+# Host browser: https://127.0.0.1:8443/  (accept self-signed warning; enter user/password)
+# After AUTHGATE_MAX_FAILURES bad passwords, that client IP is locked out temporarily.
+
+{
+	auto_https off
+}
+
+:8443 {
+	tls /etc/caddy/certs/localhost.crt /etc/caddy/certs/localhost.key
+
+	# Auth + 3-strike lockout (see authgate/). Pass client IP for per-IP bans.
+	forward_auth authgate:9090 {
+		uri /verify
+		header_up X-Real-IP {remote_host}
+		copy_headers Remote-User
+	}
+
+	# Gradio uses WebSockets; reverse_proxy handles Upgrade by default.
+	reverse_proxy inference:7860 {
+		flush_interval -1
+	}
+}

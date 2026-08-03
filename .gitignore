@@ -4,6 +4,13 @@
 # Optional local CXAS weights (large binary; do not commit)
 cxas/weights/*.pth
 
+# TLS + Basic Auth secrets (generate locally; never commit)
+certs/*.crt
+certs/*.key
+certs/*.pem
+auth/users.basicauth
+auth/*.htpasswd
+
 # Oracle / cloud SSH keys (never commit)
 ssh-key*.key
 ssh-key*.key.pub

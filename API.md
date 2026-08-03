@@ -5,12 +5,18 @@ operators need for the pull-only stack.
 
 ## Endpoints
 
+Public entry (browser / remote): **HTTPS + HTTP Basic Auth** via Caddy:
+
 | URL | Purpose |
 | --- | --- |
-| `GET /healthz` | Liveness + `embedding_backend`, `retrieval_kinds`, CXAS status |
-| `GET /metadata` | Artifact profile, model dirs, retrieval options |
-| `POST /predict` | DICOM or PNG → heads + neighbors |
-| `GET /docs` | OpenAPI / Swagger |
+| `https://127.0.0.1:8443/healthz` | Liveness + `embedding_backend`, `retrieval_kinds`, CXAS status |
+| `https://127.0.0.1:8443/metadata` | Artifact profile, model dirs, retrieval options |
+| `https://127.0.0.1:8443/predict` | DICOM or PNG → heads + neighbors |
+| `https://127.0.0.1:8443/docs` | OpenAPI / Swagger |
+| `https://127.0.0.1:8443/` | Gradio UI |
+
+Orthanc on the Docker network still uses plain **`http://inference:7860`** (no TLS/auth).
+Host port `7860` is bound to **localhost only** for debugging.
 
 ## `POST /predict`
 
@@ -40,7 +46,19 @@ operators need for the pull-only stack.
 Neighbor search uses the selected **retrieval** space (default Ark). Google spaces load
 TensorFlow on first use and need extra RAM.
 
-## Example
+## Example (through Caddy)
+
+Use `-k` for the self-signed cert and `-u` for Basic Auth:
+
+```bash
+curl -sk -u breader:'your-long-password' \
+  -X POST https://127.0.0.1:8443/predict \
+  -F "file=@study.dcm" \
+  -F "top_k=3" \
+  -F "retrieval_embedding=ark-1376" | jq .
+```
+
+Localhost debug (no auth; not published on the LAN):
 
 ```bash
 curl -s -X POST http://127.0.0.1:7860/predict \

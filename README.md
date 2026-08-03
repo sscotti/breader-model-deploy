@@ -10,6 +10,7 @@ clone of the full training repo required.
 | ---------------------- | ----------------------------- | -------------------------------- |
 | CXAS preprocess API    | `sdscotti/cxr-preprocess-api` | Public                           |
 | Ark inference + Gradio | `sdscotti/breader-inference`  | **Private** (Hub login required) |
+| Caddy (TLS) + authgate (Basic Auth + lockout) | `caddy`, `authgate` | Public (`:8443`) |
 | Orthanc + ILO plugin   | `sdscotti/orthanc-breader`    | Public                           |
 
 
@@ -37,6 +38,11 @@ breader-model-deploy/
   docker-compose.yml      # pull + run (no build:)
   .env.sample             # copy → .env
   pull.sh                 # docker login + compose pull
+  scripts/                # gen_localhost_certs.sh, gen_basicauth_users.sh
+  caddy/                  # Caddyfile + entrypoint (HTTPS gateway)
+  authgate/               # Basic Auth + 3-strike IP lockout (forward_auth)
+  certs/                  # self-signed TLS (generate locally; gitignored)
+  auth/                   # users.basicauth (generate locally; gitignored)
   API.md                  # predict / heads summary for operators
   LICENSE                 # Apache-2.0 (original glue / docs in this folder)
   NOTICE                  # third-party model / data attributions
@@ -69,23 +75,44 @@ cd breader-model-deploy
 cp .env.sample .env
 # Edit .env: set DOCKER_HUB_TOKEN (read-only PAT)
 
+# TLS cert + Basic Auth user (required before first up)
+./scripts/gen_localhost_certs.sh
+./scripts/gen_basicauth_users.sh breader 'your-long-password'
+
 ./pull.sh
 docker compose up -d
 ```
 
 Open:
 
-- **Inference UI / API:** [http://127.0.0.1:7860/](http://127.0.0.1:7860/)
-- **Orthanc:** [http://127.0.0.1:8042/](http://127.0.0.1:8042/)
+- **Inference UI / API (public HTTPS + password):** `https://<host>:8443/` — accept the self-signed warning, then log in
+- **Inference HTTP (localhost debug only):** [http://127.0.0.1:7860/](http://127.0.0.1:7860/)
+- **CXAS / Orthanc UI / Orthanc DICOM:** localhost-only (`8081` / `8042` / `4242`). For Orthanc from another machine use SSH, e.g. `ssh -L 8042:127.0.0.1:8042 user@host` then open [http://127.0.0.1:8042/](http://127.0.0.1:8042/)
+
+Orthanc’s ILO plugin still calls `http://inference:7860` on the Docker network (no browser TLS/auth).
 
 First CXAS start may take several minutes while UNet weights download (unless seeded).
+
+### TLS + Basic Auth notes
+
+This is a **controlled single-host / LAN** gate, not full IdP/SSO:
+
+- Self-signed cert → browser warning until trusted (or set `EXTRA_IP=…` when generating for LAN).
+- Users live in `auth/users.basicauth` (bcrypt hashes only; gitignored). Add more with the same script.
+- Change password → re-run `gen_basicauth_users.sh` → `docker compose up -d --force-recreate authgate caddy`.
+- **Lockout:** after `AUTHGATE_MAX_FAILURES` (default **3**) wrong passwords, that client IP gets HTTP 429 for `AUTHGATE_LOCKOUT_SECONDS` (default **900**). A blank browser prompt does not count; only bad credentials do. Restart `authgate` to clear locks.
+- Do **not** commit `.env` passwords or `auth/users.basicauth`.
 
 ## Verify
 
 ```bash
 docker compose ps
 curl -sS http://127.0.0.1:8081/health
-curl -sS http://127.0.0.1:7860/healthz | jq '{status, embedding_backend, retrieval_kinds}'
+# Through Caddy (must auth; -k for self-signed)
+curl -sk -u breader:'your-long-password' https://127.0.0.1:8443/healthz \
+  | jq '{status, embedding_backend, retrieval_kinds}'
+# Unauthenticated should be 401
+curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1:8443/healthz
 curl -sS http://127.0.0.1:8042/system
 ```
 
@@ -94,7 +121,7 @@ Upload a DICOM in the Gradio UI or see [API.md](API.md) for `curl` examples.
 ## Inference-only (no Orthanc)
 
 ```bash
-docker compose up -d cxas-api inference
+docker compose up -d cxas-api inference caddy
 ```
 
 
@@ -125,12 +152,15 @@ Then `./pull.sh && docker compose up -d --force-recreate`.
 | Symptom                                                         | Fix                                                                                                                                                 |
 | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pull access denied` on inference                               | `docker login` with read token; confirm access to private repo                                                                                      |
+| Caddy exits: missing cert / users                               | Run `./scripts/gen_localhost_certs.sh` and `./scripts/gen_basicauth_users.sh …` then `docker compose up -d --force-recreate caddy`                   |
+| Browser TLS warning                                             | Expected for self-signed; proceed once, or trust `certs/localhost.crt`                                                                              |
+| `401` on `https://…:8443`                                       | Wrong user/password; re-run `gen_basicauth_users.sh` and recreate caddy                                                                             |
 | Gradio **“Connection to the server was lost”** on Run Inference | Usually **OOM** (exit 137). Raise Docker Desktop memory to **12 GB+**; keep retrieval on **Ark**; `docker compose up -d --force-recreate inference` |
 | Inference restarts in a loop                                    | `docker compose logs inference --tail 50`; check OOM in `docker events`                                                                             |
 | Inference starts before CXAS ready                              | Wait for `cxas-api` healthy; restart inference                                                                                                      |
 | CXAS slow first boot                                            | Normal; or add `UNet_ResNet50_default.pth` under `cxas/weights/`                                                                                    |
 | Old model after maintainer push                                 | `./pull.sh && docker compose up -d --force-recreate`                                                                                                |
-| Port in use                                                     | Change `*_HOST_PORT` in `.env`                                                                                                                      |
+| Port in use                                                     | Change `*_HOST_PORT` / `CADDY_HTTPS_PORT` in `.env`                                                                                                 |
 | `orthanc-ilo` name already in use                               | `docker rm -f orthanc-ilo` then `docker compose up -d`                                                                                              |
 
 
