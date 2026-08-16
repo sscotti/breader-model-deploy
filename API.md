@@ -5,7 +5,7 @@ operators need for the pull-only stack.
 
 ## Endpoints
 
-Public entry (browser / remote): **HTTPS + HTTP Basic Auth** via Caddy:
+Public entry (browser / remote): **HTTPS** via Caddy on **`https://breader.medinformatics.eu/`** (optional HTTP Basic Auth).
 
 | URL | Purpose |
 | --- | --- |
@@ -48,11 +48,12 @@ TensorFlow on first use and need extra RAM.
 
 ## Example (through Caddy)
 
-Use `-k` for the self-signed cert and `-u` for Basic Auth:
+Use `-k` for a self-signed origin cert. Add `-u user:pass` when `CADDY_BASIC_AUTH=true`:
 
 ```bash
 curl -sk -u breader:'your-long-password' \
-  -X POST https://127.0.0.1:8443/predict \
+  -X POST https://breader.medinformatics.eu/predict \
+```
   -F "file=@study.dcm" \
   -F "top_k=3" \
   -F "retrieval_embedding=ark-1376" | jq .

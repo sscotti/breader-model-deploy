@@ -4,6 +4,7 @@
 # Usage (from breader-model-deploy/):
 #   ./scripts/gen_localhost_certs.sh
 #   EXTRA_IP=192.168.1.50 ./scripts/gen_localhost_certs.sh
+#   EXTRA_DNS=breader.medinformatics.eu ./scripts/gen_localhost_certs.sh
 #
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -26,6 +27,11 @@ fi
 if [[ -n "${EXTRA_DNS:-}" ]]; then
   SAN="${SAN},DNS:${EXTRA_DNS}"
 fi
+if [[ -n "${EXTRA_DNS:-}" ]]; then
+  CN_NAME="${EXTRA_DNS}"
+else
+  CN_NAME="localhost"
+fi
 
 TMP="$(mktemp)"
 trap 'rm -f "${TMP}"' EXIT
@@ -38,7 +44,7 @@ distinguished_name = dn
 x509_extensions = v3_req
 
 [dn]
-CN = localhost
+CN = ${CN_NAME}
 O = B-reader local deploy
 OU = self-signed
 

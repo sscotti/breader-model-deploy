@@ -8,7 +8,9 @@
 #   ./pull.sh              # or: docker login && docker compose pull
 #   docker compose up -d
 #
-#   Inference UI (HTTPS + Basic Auth, 3-strike IP lockout): https://<host>:8443/
+#   Inference UI: https://breader.medinformatics.eu/  (or https://<host>:8443/ locally)
+#   Optional Basic Auth + 3-strike lockout (CADDY_BASIC_AUTH=true|false)
+#   Inference HTTP (localhost debug): http://127.0.0.1:7860/
 #   Inference HTTP (localhost debug): http://127.0.0.1:7860/
 #   CXAS / Orthanc HTTP+DICOM: localhost only (SSH tunnel to reach remotely)
 #   Orthanc → inference stays http://inference:7860 on the Docker network (no TLS/auth).
@@ -19,6 +21,7 @@ services:
     image: ${AUTHGATE_IMAGE:-sdscotti/breader-authgate:arm64}
     environment:
       AUTHGATE_USERS_FILE: /auth/users.basicauth
+      AUTHGATE_ENABLED: ${CADDY_BASIC_AUTH:-true}
       AUTHGATE_MAX_FAILURES: ${AUTHGATE_MAX_FAILURES:-3}
       AUTHGATE_LOCKOUT_SECONDS: ${AUTHGATE_LOCKOUT_SECONDS:-900}
     volumes:
@@ -123,9 +126,12 @@ services:
 
   caddy:
     image: ${CADDY_IMAGE:-caddy:2-alpine}
-    # Public Gradio / API entry (TLS + Basic Auth + lockout). Bind all interfaces.
+    # Public Gradio / API entry. Host port maps to container 8443.
     ports:
       - "${CADDY_HTTPS_PORT:-8443}:8443"
+    environment:
+      CADDY_BASIC_AUTH: ${CADDY_BASIC_AUTH:-true}
+      CADDY_HOSTNAME: ${CADDY_HOSTNAME:-}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./caddy/entrypoint.sh:/entrypoint.sh:ro

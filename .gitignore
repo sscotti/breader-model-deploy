@@ -20,4 +20,9 @@ id_rsa.pub
 id_ed25519
 id_ed25519.pub
 
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
 orthanc/python/__pycache__/

@@ -75,8 +75,8 @@ cd breader-model-deploy
 cp .env.sample .env
 # Edit .env: set DOCKER_HUB_TOKEN (read-only PAT)
 
-# TLS cert + Basic Auth user (required before first up)
-./scripts/gen_localhost_certs.sh
+# TLS cert + optional Basic Auth user (required before first up if CADDY_BASIC_AUTH=true)
+EXTRA_DNS=breader.medinformatics.eu ./scripts/gen_localhost_certs.sh
 ./scripts/gen_basicauth_users.sh breader 'your-long-password'
 
 ./pull.sh
@@ -85,7 +85,7 @@ docker compose up -d
 
 Open:
 
-- **Inference UI / API (public HTTPS + password):** `https://<host>:8443/` — accept the self-signed warning, then log in
+- **Inference UI / API:** `https://breader.medinformatics.eu/` (production hostname) or `https://<host>:8443/` locally. If `CADDY_BASIC_AUTH=true`, accept the self-signed warning (unless you use a Cloudflare Origin cert) and log in.
 - **Inference HTTP (localhost debug only):** [http://127.0.0.1:7860/](http://127.0.0.1:7860/)
 - **CXAS / Orthanc UI / Orthanc DICOM:** localhost-only (`8081` / `8042` / `4242`). For Orthanc from another machine use SSH, e.g. `ssh -L 8042:127.0.0.1:8042 user@host` then open [http://127.0.0.1:8042/](http://127.0.0.1:8042/)
 
@@ -93,14 +93,35 @@ Orthanc’s ILO plugin still calls `http://inference:7860` on the Docker network
 
 First CXAS start may take several minutes while UNet weights download (unless seeded).
 
-### TLS + Basic Auth notes
+### TLS, hostname, and optional Basic Auth
 
-This is a **controlled single-host / LAN** gate, not full IdP/SSO:
+Public HTTPS is terminated by Caddy. Production hostname is **`breader.medinformatics.eu`** (`CADDY_HOSTNAME`). Other `Host` headers (including raw IP) get HTTP 421.
 
-- Self-signed cert → browser warning until trusted (or set `EXTRA_IP=…` when generating for LAN).
-- Users live in `auth/users.basicauth` (bcrypt hashes only; gitignored). Add more with the same script.
-- Change password → re-run `gen_basicauth_users.sh` → `docker compose up -d --force-recreate authgate caddy`.
-- **Lockout:** after `AUTHGATE_MAX_FAILURES` (default **3**) wrong passwords, that client IP gets HTTP 429 for `AUTHGATE_LOCKOUT_SECONDS` (default **900**). A blank browser prompt does not count; only bad credentials do. Restart `authgate` to clear locks.
+**Cloudflare A record**
+
+1. Point `breader.medinformatics.eu` → VPS public IP.
+2. Start **DNS-only** (grey cloud) if the origin uses a self-signed cert on `:8443` or `:443`.
+3. If you orange-cloud (proxy): set SSL/TLS to **Full** (not Flexible). **Full (strict)** needs a [Cloudflare Origin CA](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/) cert saved as `certs/localhost.crt` + `certs/localhost.key`.
+4. Open the host port (`CADDY_HTTPS_PORT`, default 8443; use `443` for standard HTTPS: `CADDY_HTTPS_PORT=443` maps `443:8443`).
+
+Regenerate the origin cert with the DNS name:
+
+```bash
+EXTRA_DNS=breader.medinformatics.eu ./scripts/gen_localhost_certs.sh
+docker compose up -d --force-recreate caddy
+```
+
+**Basic Auth** (`CADDY_BASIC_AUTH`, default `true`) uses the same `auth/users.basicauth` file (bcrypt hashes). Set `CADDY_BASIC_AUTH=false` to serve Gradio without a password (authgate stays up but is not consulted). Recreate Caddy after changing it:
+
+```bash
+# .env
+CADDY_BASIC_AUTH=false
+docker compose up -d --force-recreate caddy authgate
+```
+
+- Users live in `auth/users.basicauth` (gitignored). Add more with `./scripts/gen_basicauth_users.sh`.
+- Change password → re-run that script → `docker compose up -d --force-recreate authgate caddy`.
+- **Lockout** (only when auth is on): after `AUTHGATE_MAX_FAILURES` (default **3**) wrong passwords, that client IP gets HTTP 429 for `AUTHGATE_LOCKOUT_SECONDS` (default **900**). Restart `authgate` to clear locks.
 - Do **not** commit `.env` passwords or `auth/users.basicauth`.
 
 ## Verify
@@ -152,9 +173,10 @@ Then `./pull.sh && docker compose up -d --force-recreate`.
 | Symptom                                                         | Fix                                                                                                                                                 |
 | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pull access denied` on inference                               | `docker login` with read token; confirm access to private repo                                                                                      |
-| Caddy exits: missing cert / users                               | Run `./scripts/gen_localhost_certs.sh` and `./scripts/gen_basicauth_users.sh …` then `docker compose up -d --force-recreate caddy`                   |
-| Browser TLS warning                                             | Expected for self-signed; proceed once, or trust `certs/localhost.crt`                                                                              |
-| `401` on `https://…:8443`                                       | Wrong user/password; re-run `gen_basicauth_users.sh` and recreate caddy                                                                             |
+| Caddy exits: missing cert / users                               | Run cert + users scripts (or `CADDY_BASIC_AUTH=false`); recreate caddy                                                                                 |
+| Browser TLS warning                                             | Expected for self-signed; or use Cloudflare Origin CA for Full (strict)                                                                              |
+| `401` on public HTTPS                                           | Wrong user/password, or auth still on; re-run `gen_basicauth_users.sh` or set `CADDY_BASIC_AUTH=false`                                               |
+| `421` on public HTTPS                                           | `Host` is not `CADDY_HOSTNAME` (use `https://breader.medinformatics.eu/`, not the raw IP)                                                            |
 | Gradio **“Connection to the server was lost”** on Run Inference | Usually **OOM** (exit 137). Raise Docker Desktop memory to **12 GB+**; keep retrieval on **Ark**; `docker compose up -d --force-recreate inference` |
 | Inference restarts in a loop                                    | `docker compose logs inference --tail 50`; check OOM in `docker events`                                                                             |
 | Inference starts before CXAS ready                              | Wait for `cxas-api` healthy; restart inference                                                                                                      |

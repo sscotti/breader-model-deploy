@@ -18,6 +18,12 @@ LOCKOUT_SECONDS = int(os.environ.get("AUTHGATE_LOCKOUT_SECONDS", "900"))
 LISTEN = os.environ.get("AUTHGATE_LISTEN", "0.0.0.0")
 PORT = int(os.environ.get("AUTHGATE_PORT", "9090"))
 REALM = os.environ.get("AUTHGATE_REALM", "B-reader demo")
+AUTH_ENABLED = os.environ.get("AUTHGATE_ENABLED", "true").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
 
 _lock = threading.Lock()
 # ip -> {"fails": int, "locked_until": float}
@@ -120,6 +126,10 @@ class Handler(BaseHTTPRequestHandler):
             self._respond(200, b"ok\n", "text/plain")
             return
 
+        if not AUTH_ENABLED:
+            self._respond(200, b"auth disabled\n", "text/plain")
+            return
+
         ip = _client_ip(self)
         now = time.time()
 
@@ -214,11 +224,16 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    _load_users(force=True)
+    if AUTH_ENABLED:
+        _load_users(force=True)
+        users_note = str(USERS_FILE)
+    else:
+        users_note = "disabled"
     server = ThreadingHTTPServer((LISTEN, PORT), Handler)
     print(
         f"[authgate] listening on {LISTEN}:{PORT} "
-        f"(max_failures={MAX_FAILURES}, lockout={LOCKOUT_SECONDS}s, users={USERS_FILE})",
+        f"(enabled={AUTH_ENABLED}, max_failures={MAX_FAILURES}, "
+        f"lockout={LOCKOUT_SECONDS}s, users={users_note})",
         flush=True,
     )
     server.serve_forever()
