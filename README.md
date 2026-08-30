@@ -1,5 +1,17 @@
 # B-reader model deploy (pull-only)
 
+Certified [NIOSH B Readers](https://www.cdc.gov/niosh/chestradiography/php/about/) remain
+relatively few compared with the occupational population still eligible for pneumoconiosis
+screening. The ILO publishes an [abbreviated classification reading sheet](https://www.ilo.org/publications/guidelines-use-ilo-international-classification-radiographs-pneumoconioses-1)
+(2022 guidelines) that records technical quality, small-opacity shape/size, a 4-point
+profusion, large opacities (0 / A / B / C), and a yes/no pleural screen with laterality
+for thickening and calcification. This stack does **not** implement that form in full.
+It approximates the items used most often in practice: a **simplified profusion (0–3)**,
+a coarse small-opacity type (**round** vs **irregular / interstitial**), **large-opacity**
+stage, and **selected pleural** findings, plus the usual parenchymal screens (normal vs
+not, Q2A / Q3A). Outputs are for research, education, and decision support — not a
+certified B-read.
+
 Self-contained folder to run the **B-reader CXR stack** from pre-built Docker Hub images — no
 clone of the full training repo required.
 
