@@ -8,9 +8,11 @@ profusion, large opacities (0 / A / B / C), and a yes/no pleural screen with lat
 for thickening and calcification. This stack does **not** implement that form in full.
 It approximates the items used most often in practice: a **simplified profusion (0–3)**,
 a coarse small-opacity type (**round** vs **irregular / interstitial**), **large-opacity**
-stage, and **selected pleural** findings, plus the usual parenchymal screens (normal vs
-not, Q2A / Q3A). Outputs are for research, education, and decision support — not a
-certified B-read.
+stage, and **selected pleural** findings, plus the usual parenchymal screens (normal vs not, Q2A / Q3A). Outputs are for research, education, and decision support — not a certified B-read.  
+  
+There is a web-deployed GUI available at:  [https://breader.medinformatics.eu:8443/](https://breader.medinformatics.eu:8443/)  
+  
+That accepts .png and .dcm PA CXR, preferably anatomically oriented.  It crops, normalizes, embeds, and then performs inferences and a KNN search.
 
 Self-contained folder to run the **B-reader CXR stack** from pre-built Docker Hub images — no
 clone of the full training repo required.
@@ -18,12 +20,12 @@ clone of the full training repo required.
 **GitHub:** [github.com/sscotti/breader-model-deploy](https://github.com/sscotti/breader-model-deploy)
 
 
-| Service                | Image                         | Visibility                       |
-| ---------------------- | ----------------------------- | -------------------------------- |
-| CXAS preprocess API    | `sdscotti/cxr-preprocess-api` | Public                           |
-| Ark inference + Gradio | `sdscotti/breader-inference`  | **Private** (Hub login required) |
-| Caddy (TLS) + authgate (Basic Auth + lockout) | `caddy`, `authgate` | Public (`:8443`) |
-| Orthanc + ILO plugin   | `sdscotti/orthanc-breader`    | Public                           |
+| Service                                       | Image                         | Visibility                       |
+| --------------------------------------------- | ----------------------------- | -------------------------------- |
+| CXAS preprocess API                           | `sdscotti/cxr-preprocess-api` | Public                           |
+| Ark inference + Gradio                        | `sdscotti/breader-inference`  | **Private** (Hub login required) |
+| Caddy (TLS) + authgate (Basic Auth + lockout) | `caddy`, `authgate`           | Public (`:8443`)                 |
+| Orthanc + ILO plugin                          | `sdscotti/orthanc-breader`    | Public                           |
 
 
 
@@ -107,7 +109,7 @@ First CXAS start may take several minutes while UNet weights download (unless se
 
 ### TLS, hostname, and optional Basic Auth
 
-Public HTTPS is terminated by Caddy. Production hostname is **`breader.medinformatics.eu`** (`CADDY_HOSTNAME`). Other `Host` headers (including raw IP) get HTTP 421.
+Public HTTPS is terminated by Caddy. Production hostname is `breader.medinformatics.eu` (`CADDY_HOSTNAME`). Other `Host` headers (including raw IP) get HTTP 421.
 
 **Cloudflare A record**
 
@@ -135,6 +137,8 @@ docker compose up -d --force-recreate caddy authgate
 - Change password → re-run that script → `docker compose up -d --force-recreate authgate caddy`.
 - **Lockout** (only when auth is on): after `AUTHGATE_MAX_FAILURES` (default **3**) wrong passwords, that client IP gets HTTP 429 for `AUTHGATE_LOCKOUT_SECONDS` (default **900**). Restart `authgate` to clear locks.
 - Do **not** commit `.env` passwords or `auth/users.basicauth`.
+
+
 
 ## Verify
 
@@ -185,10 +189,10 @@ Then `./pull.sh && docker compose up -d --force-recreate`.
 | Symptom                                                         | Fix                                                                                                                                                 |
 | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pull access denied` on inference                               | `docker login` with read token; confirm access to private repo                                                                                      |
-| Caddy exits: missing cert / users                               | Run cert + users scripts (or `CADDY_BASIC_AUTH=false`); recreate caddy                                                                                 |
-| Browser TLS warning                                             | Expected for self-signed; or use Cloudflare Origin CA for Full (strict)                                                                              |
-| `401` on public HTTPS                                           | Wrong user/password, or auth still on; re-run `gen_basicauth_users.sh` or set `CADDY_BASIC_AUTH=false`                                               |
-| `421` on public HTTPS                                           | `Host` is not `CADDY_HOSTNAME` (use `https://breader.medinformatics.eu/`, not the raw IP)                                                            |
+| Caddy exits: missing cert / users                               | Run cert + users scripts (or `CADDY_BASIC_AUTH=false`); recreate caddy                                                                              |
+| Browser TLS warning                                             | Expected for self-signed; or use Cloudflare Origin CA for Full (strict)                                                                             |
+| `401` on public HTTPS                                           | Wrong user/password, or auth still on; re-run `gen_basicauth_users.sh` or set `CADDY_BASIC_AUTH=false`                                              |
+| `421` on public HTTPS                                           | `Host` is not `CADDY_HOSTNAME` (use `https://breader.medinformatics.eu/`, not the raw IP)                                                           |
 | Gradio **“Connection to the server was lost”** on Run Inference | Usually **OOM** (exit 137). Raise Docker Desktop memory to **12 GB+**; keep retrieval on **Ark**; `docker compose up -d --force-recreate inference` |
 | Inference restarts in a loop                                    | `docker compose logs inference --tail 50`; check OOM in `docker events`                                                                             |
 | Inference starts before CXAS ready                              | Wait for `cxas-api` healthy; restart inference                                                                                                      |
@@ -227,28 +231,34 @@ research / decision-support only and are not a substitute for a certified B Read
 Expanded cohort out-of-fold comparison: **Google ELIXR vs Ark** (primary production
 encoder is Ark). Regenerated **2026-08-02** (pleural thresholds now **max F1**).
 
-| | |
-| --- | --- |
-| **Google heads** | `GoogleCXR/model/<task>/` (dev repo) |
-| **Ark heads** | `Ark/model/<task>/` (bundled in inference image) |
+
+|                     |                                                                  |
+| ------------------- | ---------------------------------------------------------------- |
+| **Google heads**    | `GoogleCXR/model/<task>/` (dev repo)                             |
+| **Ark heads**       | `Ark/model/<task>/` (bundled in inference image)                 |
 | **Training cohort** | ~1205 films via `training_sets/expanded_8bit_vindr_enhanced.txt` |
-| **Labels** | Consensus under `datasets_png/8bit_robust/labels` + VinDr |
+| **Labels**          | Consensus under `datasets_png/8bit_robust/labels` + VinDr        |
+
+
+
 
 ### Summary (primary metric per task)
 
-| Task | Primary metrics | Google | Ark | Δ (Ark − Google) | Edge |
-| ---- | --------------- | ------ | --- | ---------------- | ---- |
-| q2a_binary | AUROC / F1 | 0.962 / 0.910 | 0.973 / 0.926 | +0.011 / +0.017 | Ark |
-| q3a_binary | AUROC / F1 | 0.860 / 0.609 | 0.873 / 0.623 | +0.013 / +0.014 | Ark |
-| normal_vs_not | AUROC / F1 | 0.965 / 0.815 | 0.974 / 0.841 | +0.009 / +0.026 | Ark |
-| profusion_0-3 | QWK / MAE | 0.855 / 0.282 | 0.887 / 0.229 | +0.032 / −0.053 | Ark |
-| profusion_full_category | QWK / Accuracy | 0.897 / 0.452 | 0.921 / 0.481 | +0.024 / +0.028 | Ark |
-| small_opacities_multiclass_pure | Macro F1 / Macro AUROC | 0.803 / 0.938 | 0.831 / 0.953 | +0.028 / +0.015 | Ark |
-| large_opacity_present | AUROC / F1 | 0.976 / 0.745 | 0.987 / 0.830 | +0.011 / +0.085 | Ark |
-| large_opacities | QWK / MAE | 0.744 / 0.111 | 0.813 / 0.086 | +0.069 / −0.025 | Ark |
-| pleural_calc_any | AUROC / F1 | 0.874 / 0.487 | 0.899 / 0.590 | +0.025 / +0.102 | Ark |
-| pleural_calc_face | AUROC / MAP | 0.884 / 0.470 | 0.933 / 0.682 | +0.049 / +0.211 | Ark |
-| pleural_calc_diaphragm | AUROC / F1 | 0.883 / 0.447 | 0.889 / 0.524 | +0.006 / +0.077 | Ark |
+
+| Task                            | Primary metrics        | Google        | Ark           | Δ (Ark − Google) | Edge |
+| ------------------------------- | ---------------------- | ------------- | ------------- | ---------------- | ---- |
+| q2a_binary                      | AUROC / F1             | 0.962 / 0.910 | 0.973 / 0.926 | +0.011 / +0.017  | Ark  |
+| q3a_binary                      | AUROC / F1             | 0.860 / 0.609 | 0.873 / 0.623 | +0.013 / +0.014  | Ark  |
+| normal_vs_not                   | AUROC / F1             | 0.965 / 0.815 | 0.974 / 0.841 | +0.009 / +0.026  | Ark  |
+| profusion_0-3                   | QWK / MAE              | 0.855 / 0.282 | 0.887 / 0.229 | +0.032 / −0.053  | Ark  |
+| profusion_full_category         | QWK / Accuracy         | 0.897 / 0.452 | 0.921 / 0.481 | +0.024 / +0.028  | Ark  |
+| small_opacities_multiclass_pure | Macro F1 / Macro AUROC | 0.803 / 0.938 | 0.831 / 0.953 | +0.028 / +0.015  | Ark  |
+| large_opacity_present           | AUROC / F1             | 0.976 / 0.745 | 0.987 / 0.830 | +0.011 / +0.085  | Ark  |
+| large_opacities                 | QWK / MAE              | 0.744 / 0.111 | 0.813 / 0.086 | +0.069 / −0.025  | Ark  |
+| pleural_calc_any                | AUROC / F1             | 0.874 / 0.487 | 0.899 / 0.590 | +0.025 / +0.102  | Ark  |
+| pleural_calc_face               | AUROC / MAP            | 0.884 / 0.470 | 0.933 / 0.682 | +0.049 / +0.211  | Ark  |
+| pleural_calc_diaphragm          | AUROC / F1             | 0.883 / 0.447 | 0.889 / 0.524 | +0.006 / +0.077  | Ark  |
+
 
 Binary / pleural operating points use **max F1** on pooled OOF. OOF metrics are the honest
 generalization estimate for these heads. In-sample / full-cohort rescored numbers look stronger
@@ -257,19 +267,23 @@ needed before claiming deploy-ready performance.
 
 ### Sample sizes
 
-| Task | n | Head |
-| ---- | - | ---- |
-| q2a_binary | 1196 | lr |
-| q3a_binary | 1196 | lr |
-| normal_vs_not | 1196 | lr |
-| profusion_0-3 | 1196 | ordinal_logit |
-| profusion_full_category | 1196 | ordinal_logit |
-| small_opacities_multiclass_pure | 754 | multinomial_logistic_regression |
-| large_opacity_present | 1196 | lr |
-| large_opacities | 1196 | ordinal_logit |
-| pleural_calc_any | 1196 | pleural_calc_multilabel |
-| pleural_calc_face | 1196 | pleural_calc_multilabel |
-| pleural_calc_diaphragm | 1196 | pleural_calc_multilabel |
+
+| Task                            | n    | Head                            |
+| ------------------------------- | ---- | ------------------------------- |
+| q2a_binary                      | 1196 | lr                              |
+| q3a_binary                      | 1196 | lr                              |
+| normal_vs_not                   | 1196 | lr                              |
+| profusion_0-3                   | 1196 | ordinal_logit                   |
+| profusion_full_category         | 1196 | ordinal_logit                   |
+| small_opacities_multiclass_pure | 754  | multinomial_logistic_regression |
+| large_opacity_present           | 1196 | lr                              |
+| large_opacities                 | 1196 | ordinal_logit                   |
+| pleural_calc_any                | 1196 | pleural_calc_multilabel         |
+| pleural_calc_face               | 1196 | pleural_calc_multilabel         |
+| pleural_calc_diaphragm          | 1196 | pleural_calc_multilabel         |
+
+
+
 
 ## License
 
