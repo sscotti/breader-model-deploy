@@ -11,7 +11,9 @@ a coarse small-opacity type (**round** vs **irregular / interstitial**), **large
 stage, and **selected pleural** findings, plus the usual parenchymal screens (normal vs not, Q2A / Q3A). Outputs are for research, education, and decision support — not a certified B-read.  
   
 There is a web-deployed GUI available at:  [https://breader.medinformatics.eu:8443/](https://breader.medinformatics.eu:8443/)  
-  
+
+<img src="images/gui.png" alt="Simplified ILO B-reader inference GUI" width="640" />
+
 That accepts .png and .dcm PA CXR, preferably anatomically oriented.  It crops, normalizes, embeds, and then performs inferences and a KNN search.
 
 Self-contained folder to run the **B-reader CXR stack** from pre-built Docker Hub images — no
