@@ -19,7 +19,7 @@ That accepts .png and .dcm PA CXR, preferably anatomically oriented.  It crops, 
 Self-contained folder to run the **B-reader CXR stack** from pre-built Docker Hub images — no
 clone of the full training repo required.
 
-**GitHub:** [github.com/sscotti/breader-model-deploy](https://github.com/sscotti/breader-model-deploy)
+**GitHub:** [github.com/sscotti/breader-model-deploy](https://github.com/sscotti/breader-model-deploy) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
 
 
 | Service                                       | Image                         | Visibility                       |

@@ -1,0 +1,17 @@
+name: Question / docs
+description: Clarification about setup, images, or documentation
+title: "[question] "
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to do, and what is unclear in the README/API docs?
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        For security-sensitive topics, email the maintainer instead of opening a public issue
+        (see [SECURITY.md](https://github.com/sscotti/breader-model-deploy/blob/main/SECURITY.md)).

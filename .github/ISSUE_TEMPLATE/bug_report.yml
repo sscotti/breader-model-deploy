@@ -1,0 +1,46 @@
+name: Bug report
+description: Deploy, pull, or runtime problem with this stack
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an issue. Redact tokens, passwords, and patient data.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Expected vs actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. cp .env.sample .env …
+        2. ./pull.sh
+        3. docker compose up -d
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: Host
+      placeholder: "e.g. Ubuntu 26.04 VPS, Docker 28.x"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: "`docker compose ps` and failing service logs (redacted)"
+      render: shell
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Acknowledgements
+      options:
+        - label: I have read TERMS.md / NOTICE and am not requesting medical-device certification support
+          required: true
